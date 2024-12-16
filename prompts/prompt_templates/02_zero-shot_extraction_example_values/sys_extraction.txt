@@ -1,0 +1,5 @@
+Extract the attribute values for {attributes} into a JSON object.
+Return 'n/a' if the attribute is not found.
+
+Attribute Descriptions:
+{attribute_descriptions}

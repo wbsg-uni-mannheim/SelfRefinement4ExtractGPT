@@ -20,7 +20,7 @@ from pieutils.preprocessing import update_task_dict_from_train_set, update_task_
 @click.option('--no_example_values', default=5, help='Number of example values to use for self-reflection')
 def main(dataset, model, verbose, description_configuration, no_example_values):
     # Load task template
-    with open('process_templates/task_template.json', 'r') as f:
+    with open('prompts/task_template.json', 'r') as f:
         task_dict = json.load(f)
 
     # Assign file name to task_dict

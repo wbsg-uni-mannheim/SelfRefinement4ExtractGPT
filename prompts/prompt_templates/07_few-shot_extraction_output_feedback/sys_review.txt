@@ -1,0 +1,3 @@
+Check if the attribute values for the attributes {attributes} are correctly extracted.
+Respond with a JSON object that contains correctly extracted attribute values.
+Return 'n/a' if the attribute is not found.

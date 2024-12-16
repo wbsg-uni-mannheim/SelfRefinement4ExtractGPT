@@ -3,9 +3,6 @@ import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from pieutils.normalization import load_normalization_instructions
-from pieutils.search import CategoryAwareSemanticSimilarityExampleSelector
-
 
 class AttributeDescriptionInput(BaseModel):
     """Input for the attribute description tool."""
@@ -26,94 +23,87 @@ class AttributeDescriptionTool:
         #print(f"Known Values: {known_values}")
         print(f"Description Configuration: {description_configuration}")
 
-        if dataset_name == 'wdc-pave-normalized':
-            # Load attribute descriptions from file
-            normalization_rules = load_normalization_instructions(dataset_name,
-                                                                  with_function=False)
-            self.attribute_descriptions = normalization_rules
+        # Generate Descriptions
+        if description_configuration == 'only_example_values' and known_values is not None:
+            self.attribute_descriptions[category] = known_values
+        elif description_configuration == 'no_description':
+            self.attribute_descriptions[category] = {attribute: '' for attribute in attributes}
+        elif description_configuration == 'single_attribute':
+            sys_prompt = ("You are a world-class product catalogue expert. "
+                          "Write a detailed attribute description for the provided attribute."
+                          "Please consider all example values of the attribute for the description."
+                          "The description is used to extract attribute values from product descriptions."
+                          "Respond with a JSON object with the following format: { attribute: 'attribute_name', description: 'attribute_description'}.")
+            self.attribute_descriptions[category] = {}
 
-        else:
-            # Generate Descriptions
-            if description_configuration == 'only_example_values' and known_values is not None:
-                self.attribute_descriptions[category] = known_values
-            elif description_configuration == 'no_description':
-                self.attribute_descriptions[category] = {attribute: '' for attribute in attributes}
-            elif description_configuration == 'single_attribute':
-                sys_prompt = ("You are a world-class product catalogue expert. "
-                              "Write a detailed attribute description for the provided attribute."
-                              "Please consider all example values of the attribute for the description."
-                              "The description is used to extract attribute values from product descriptions."
-                              "Respond with a JSON object with the following format: { attribute: 'attribute_name', description: 'attribute_description'}.")
-                self.attribute_descriptions[category] = {}
-
-                for attribute in attributes:
-                    json_known_values = json.dumps(known_values[attribute], indent=4)
-                    result = model.invoke([SystemMessage(content=sys_prompt),
-                                           HumanMessage(content=f"Product Category: {category} \nAttribute and Example Values: \n{json_known_values}")])
-                    print("Attribute Description for " + attribute)
-                    print(result.content)
-                    if "```json" in result.content:
-                        result.content = result.content.split("```json")[1].split("```")[0]
-                    self.attribute_descriptions[category][attribute] = json.loads(result.content)['description']
-            elif description_configuration == 'single_attribute_no_attribute_name':
-                sys_prompt = ("You are a world-class product catalogue expert. \n"
-                              "The provided attribute values belong to the same attribute.\n"
-                              "Write a attribute description that helps to identify values belonging to the same attribute.\n"
-                              "The example values should be mentioned in brackets and should naturally occur in the attribute description.\n"
-                              #"Please avoid the words 'category', 'attribute', and 'example values'.\n"
-                              "Respond with a JSON object with the following format: { attribute: 'attribute_name', description: 'attribute_description'}.")
-                self.attribute_descriptions[category] = {}
-
-                for attribute in attributes:
-                    json_known_values = json.dumps(known_values[attribute], indent=4)
-                    result = model.invoke([SystemMessage(content=sys_prompt),
-                                           HumanMessage(content=f"Product Category: {category} \nAttribute Values: \n{json_known_values}")])
-                    print("Attribute Description for " + attribute)
-                    print(result.content)
-                    if "```json" in result.content:
-                        result.content = result.content.split("```json")[1].split("```")[0]
-                    self.attribute_descriptions[category][attribute] = json.loads(result.content)['description']
-            else:
-                if known_values is None:
-                    sys_prompt = ("You are a world-class product catalogue expert. "
-                                  "Write a one sentence attribute descriptions for the provided attributes."
-                                  "The descriptions are used to extract attribute values from product descriptions."
-                                  "The output should be a JSON object with the following format: {attribute: description}.")
-
-                    result = model.invoke([SystemMessage(content=sys_prompt),
-                                           HumanMessage(content=f"Category: {category} \nAttributes: {attributes}")])
-                else:
-                    if description_configuration == 'short':
-                        sys_prompt = ("Write attribute descriptions for the provided attributes. \n"
-                                      "The descriptions guide the extraction of attribute values from product descriptions.\n"
-                                      "Attribute values should be mentioned in \" \" and should naturally occur in the attribute description.\n"
-                                      "The output should be a JSON object with the following format: {attribute: description with example values}.")
-                    elif description_configuration == 'detailed':
-                        sys_prompt = ("You are a world-class product catalogue expert. \n"
-                                      "You are provided with a list of attributes and example values for these attributes that have been extract from product descriptions. \n"
-                                      "Write detailed attribute descriptions for the provided attributes.\n"
-                                      "The descriptions should help a human annotator to extract relevant attribute values from product descriptions. \n"
-                                      "Please add all example values to the respective attribute description.\n"
-                                      "Attribute values should be mentioned in \" \" and should naturally occur in the attribute description. \n"
-                                      "The output should be a JSON object with the following format: {attribute: description with example values}.")
-                    elif description_configuration == 'detailed+difference':
-                        sys_prompt = ("You are a world-class product catalogue expert. "
-                                      "Write detailed attribute descriptions for the provided attributes."
-                                      "The descriptions are used to extract attribute values from product descriptions."
-                                      "If necessary, explain the difference between attributes."
-                                      "Please add all example values to the respective attribute description."
-                                      "The output should be a JSON object with the following format: {attribute: description with example values}.")
-                    else:
-                        raise ValueError(f"Invalid description configuration {description_configuration}. Please use 'short' or 'long'.")
-
-                    json_known_values = json.dumps(known_values, indent=4)
-                    result = model.invoke([SystemMessage(content=sys_prompt),
-                                           HumanMessage(
-                                               content=f"Attribute Example Values: \n{json_known_values}")])
+            for attribute in attributes:
+                json_known_values = json.dumps(known_values[attribute], indent=4)
+                result = model.invoke([SystemMessage(content=sys_prompt),
+                                       HumanMessage(content=f"Product Category: {category} \nAttribute and Example Values: \n{json_known_values}")])
+                print("Attribute Description for " + attribute)
                 print(result.content)
                 if "```json" in result.content:
                     result.content = result.content.split("```json")[1].split("```")[0]
-                self.attribute_descriptions[category] = json.loads(result.content)
+                self.attribute_descriptions[category][attribute] = json.loads(result.content)['description']
+        elif description_configuration == 'single_attribute_no_attribute_name':
+            sys_prompt = ("You are a world-class product catalogue expert. \n"
+                          "The provided attribute values belong to the same attribute.\n"
+                          "Write a attribute description that helps to identify values belonging to the same attribute.\n"
+                          "The example values should be mentioned in brackets and should naturally occur in the attribute description.\n"
+                          #"Please avoid the words 'category', 'attribute', and 'example values'.\n"
+                          "Respond with a JSON object with the following format: { attribute: 'attribute_name', description: 'attribute_description'}.")
+            self.attribute_descriptions[category] = {}
+
+            for attribute in attributes:
+                json_known_values = json.dumps(known_values[attribute], indent=4)
+                result = model.invoke([SystemMessage(content=sys_prompt),
+                                       HumanMessage(content=f"Product Category: {category} \nAttribute Values: \n{json_known_values}")])
+                print("Attribute Description for " + attribute)
+                print(result.content)
+                if "```json" in result.content:
+                    result.content = result.content.split("```json")[1].split("```")[0]
+                self.attribute_descriptions[category][attribute] = json.loads(result.content)['description']
+        else:
+            if known_values is None:
+                sys_prompt = ("You are a world-class product catalogue expert. "
+                              "Write a one sentence attribute descriptions for the provided attributes."
+                              "The descriptions are used to extract attribute values from product descriptions."
+                              "The output should be a JSON object with the following format: {attribute: description}.")
+
+                result = model.invoke([SystemMessage(content=sys_prompt),
+                                       HumanMessage(content=f"Category: {category} \nAttributes: {attributes}")])
+            else:
+                if description_configuration == 'short':
+                    sys_prompt = ("Write attribute descriptions for the provided attributes. \n"
+                                  "The descriptions guide the extraction of attribute values from product descriptions.\n"
+                                  "Attribute values should be mentioned in \" \" and should naturally occur in the attribute description.\n"
+                                  "The output should be a JSON object with the following format: {attribute: description with example values}.")
+                elif description_configuration == 'detailed':
+                    sys_prompt = ("You are a world-class product catalogue expert. \n"
+                                  "You are provided with a list of attributes and example values for these attributes that have been extract from product descriptions. \n"
+                                  "Write detailed attribute descriptions for the provided attributes.\n"
+                                  "The descriptions should help a human annotator to extract relevant attribute values from product descriptions. \n"
+                                  "Please add all example values to the respective attribute description.\n"
+                                  "Attribute values should be mentioned in \" \" and should naturally occur in the attribute description. \n"
+                                  "The output should be a JSON object with the following format: {attribute: description with example values}.")
+                elif description_configuration == 'detailed+difference':
+                    sys_prompt = ("You are a world-class product catalogue expert. "
+                                  "Write detailed attribute descriptions for the provided attributes."
+                                  "The descriptions are used to extract attribute values from product descriptions."
+                                  "If necessary, explain the difference between attributes."
+                                  "Please add all example values to the respective attribute description."
+                                  "The output should be a JSON object with the following format: {attribute: description with example values}.")
+                else:
+                    raise ValueError(f"Invalid description configuration {description_configuration}. Please use 'short' or 'long'.")
+
+                json_known_values = json.dumps(known_values, indent=4)
+                result = model.invoke([SystemMessage(content=sys_prompt),
+                                       HumanMessage(
+                                           content=f"Attribute Example Values: \n{json_known_values}")])
+            print(result.content)
+            if "```json" in result.content:
+                result.content = result.content.split("```json")[1].split("```")[0]
+            self.attribute_descriptions[category] = json.loads(result.content)
 
     def update_attribute_descriptions(self, prediction_mistakes: dict, model, single_attribute=False):
         """Update the attribute descriptions based on prediction mistakes."""
@@ -251,29 +241,3 @@ class AttributeDescriptionTool:
 
     def invoke(self, category: str):
         return json.dumps(self.attribute_descriptions.get(category, {}))
-
-class DemonstrationSelectionInput(BaseModel):
-    """Input for the demonstration selection tool."""
-    category: str = Field(..., title="Category", description="The category of the product offer.")
-    input_text: str = Field(..., title="Input Text", description="The product description to select demonstration for in-context learning.")
-
-class DemonstrationSelectionTool:
-    """Tool to select demonstration examples."""
-
-    def __init__(self, dataset_name, known_attributes, shots, train_percentage=1.0):
-        self.name = "DemonstrationSelection"
-
-        # CategoryAware Semantic Similarity Example Selector for in-context learning
-        self.category_example_selector = CategoryAwareSemanticSimilarityExampleSelector(dataset_name,
-                                                                                        known_attributes,
-                                                                                        load_from_local=False, k=shots,
-                                                                                        train_percentage=train_percentage)
-
-    def invoke(self, category: str, input_text: str):
-        selected_examples = self.category_example_selector.select_examples({"category": category, "input": input_text})
-        formatted_examples = ""
-        for selected_example in selected_examples:
-            formatted_examples += f"{selected_example['input']}\n"
-            formatted_examples += f"{json.loads(selected_example['output'])}\n\n"
-
-        return formatted_examples
