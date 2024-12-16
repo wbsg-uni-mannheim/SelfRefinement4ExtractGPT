@@ -1,0 +1,14 @@
+.env
+.idea/
+.ipynb_checkpoints/
+*.xlsx
+/task_run_1/
+/deprecated/
+/meta_models/
+/runs/
+*.faiss
+*.pkl
+data/faiss_indexes/
+memory.db
+prompt_templates/runs/
+pieutils/__pycache__/

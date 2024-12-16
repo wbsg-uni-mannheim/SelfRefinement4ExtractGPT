@@ -1,0 +1,15 @@
+chromadb==0.5.5
+faiss-cpu==1.8.0.post1
+httptools==0.6.1
+jaraco.text==3.12.1
+langchain-cohere==0.2.3
+langchain-openai==0.1.23
+langchainhub==0.1.21
+langgraph==0.2.16
+ordered-set==4.1.0
+platformdirs==4.2.2
+#pygraphviz==1.9
+python-dotenv==1.0.1
+tavily-python==0.4.0
+watchfiles==0.24.0
+websockets==13.0.1
