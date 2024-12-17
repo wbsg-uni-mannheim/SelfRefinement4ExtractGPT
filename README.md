@@ -9,7 +9,7 @@ To obtain this OpenAI access token, users must [sign up](https://platform.openai
 
 ### Installation
 
-The codebase requires python 3.9 To install dependencies we suggest to use a conda virtual environment:
+The codebase requires python 3.9 to install dependencies we suggest to use a conda virtual environment:
 
 ```
 conda create -n SelfRefinement python=3.9
@@ -27,11 +27,12 @@ scripts/01_self-refinement_experiments.sh
 
 ## Self-Refinement Strategies for LLM-based Product Attribute Value Extraction
 
-This paper critically evaluates two self-refinement techniques for extracting attribute values from product descriptions: 
-_Error-based Prompt Rewriting_ and _Self-Correction_.
+We critically evaluate two self-refinement techniques for extracting attribute values from product descriptions: 
+_Error-based Prompt Rewriting_ and _Self-Correction_, across zero-shot, few-shot in-context learning,
+and fine-tuning settings.
 
 ## Prompting Techniques
-All prompting techniques and the code to execute the prompts are defined in the folder `prompts`.
+All prompting techniques and the code to execute the prompts are implemented in the folder `prompts`.
 Each task contains two sub-folders:
 - `execution` contains the code to execute the prompting technique.
 - `prompt_templates` contains the prompt templates for the different prompting techniques.
@@ -57,7 +58,7 @@ Expected Output:
 
 ### Error-based Prompt Rewriting
 Error-based Prompt Rewriting uses training data to improve the attribute definitions in the prompts. 
-Error-based Prompt Rewriting assumes that better attribute definitions improve the product attribute value extraction.
+It assumes that better attribute definitions improve the product attribute value extraction.
 ```
 System:
     You are provided with an attribute definition that is used to extract 
