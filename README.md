@@ -1,5 +1,5 @@
-# Self-Refinement Strategies for LLM-based Product Attribute Value Extraction
-This repository contains code and data for the paper "Self-Refinement Strategies for LLM-based Product Attribute Value Extraction".
+# Automated Self-Refinement and Self-Correction for LLM-based Product Attribute Value Extraction
+This repository contains code and data for the paper "Automated Self-Refinement and Self-Correction for LLM-based Product Attribute Value Extraction".
 
 ### Requirements
 
